@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>2048 · 名画家版</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#faf6ee">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="名画2048">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><button class="lang" id="langBtn" aria-label="Switch language">EN</button></div>
+  <header>
+    <div>
+      <h1 data-i18n="title">2048 · 名画家</h1>
+      <p class="sub" data-i18n="sub">合并相同的画家，从达利一路回溯到达·芬奇</p>
+    </div>
+    <div class="scores">
+      <div class="score"><span data-i18n="score">分数</span><b id="score">0</b></div>
+      <div class="score"><span data-i18n="best">最高</span><b id="best">0</b></div>
+    </div>
+  </header>
+  <div class="bar">
+    <span class="hint" data-i18n="hint">方向键 / WASD / 手指滑动</span>
+    <button id="newBtn" data-i18n="newGame">新游戏</button>
+  </div>
+  <div class="board" id="board">
+    <div class="over" id="over"><p data-i18n="over">没有可以移动的方块了</p><button id="retryBtn" data-i18n="retry">再来一局</button></div>
+  </div>
+  <div class="ladder-title" data-i18n="ladderTitle">画家阶梯（越早出生越高阶，点击已解锁的画家查看介绍）</div>
+  <div class="ladder" id="ladder"></div>
+  <footer data-i18n="footer">两个相同的画家合并，会变成更早出生的那一位。</footer>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card" role="dialog" aria-modal="true">
+    <div class="card-top" id="mTop">
+      <div class="tier" id="mTier"></div>
+      <div class="big" id="mZh"></div>
+      <div class="en-full" id="mEn"></div>
+    </div>
+    <div class="card-body">
+      <div class="meta" id="mMeta"></div>
+      <p class="win" id="mWin"></p>
+      <p id="mDesc"></p>
+      <p class="fact" id="mFact"></p>
+      <button id="mBtn" data-i18n="cont">继续</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="confirm">
+  <div class="card confirm-card" role="alertdialog" aria-modal="true">
+    <div class="card-body">
+      <div class="lock">🔒</div>
+      <p id="cText"></p>
+      <div class="btns"><button id="cNo" class="ghost" data-i18n="peekNo">继续挑战</button><button id="cYes" data-i18n="peekYes">直接查看</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="game.js"></script>
+</body>
+</html>
