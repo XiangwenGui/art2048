@@ -13,17 +13,6 @@
 - `manifest.json` + `sw.js` + `icons/` 让它能“添加到主屏幕”并离线运行
 - 右上角按钮切换中文 / English；英文介绍在 `game.js` 的 `EN` 数组，界面文字在 `I18N`
 
-## 部署到 GitHub Pages
-1. 把这个文件夹里的所有文件推到仓库根目录
-2. Settings → Pages → Source 选 `main` 分支、`/ (root)`
-3. 几分钟后访问 `https://<用户名>.github.io/<仓库名>/`
-
-## 装到 iPhone
-用 Safari 打开上面的网址 → 分享按钮 → “添加到主屏幕”。
-之后它会像 App 一样全屏打开，断网也能玩。
-
-## 更新后手机没变化？
-修改文件后，把 `sw.js` 第一行的 `art2048-v1` 改成 `v2`、`v3`……再推送。
 
 ## 图片来源
 `img/lascaux.jpg`：拉斯科洞穴壁画中的马（约 1.7 万年前），图片来自 Wikimedia Commons 的 [File:Lascaux2.jpg](https://commons.wikimedia.org/wiki/File:Lascaux2.jpg)，标记为公有领域（PD-Art）。
