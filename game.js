@@ -97,19 +97,21 @@ const I18N = {
   zh: {docTitle:"2048 · 名画家版", title:"2048 · 名画家", sub:"合并相同的画家，从达利一路回溯到拉斯科洞穴",
        score:"分数", best:"最高", hint:"方向键 / WASD / 手指滑动", newGame:"新游戏",
        over:"没有可以移动的方块了", retry:"再来一局",
-       ladderTitle:"画家阶梯（越早出生越高阶，点击画家查看介绍）",
+       ladderTitle:"越早出生越高阶，点击画家查看介绍", gallery:"画家图鉴",
        footer:"两个相同的画家合并，会变成更早出生的那一位。", cont:"继续",
        newArtist:"新画家登场 · ", tier:(v, n) => `${v} · 第 ${n} 阶`,
        win:"🎉 你合成出了 2048！可以继续玩下去。", final:"🏆 你一路追溯到了绘画的源头！", fact:"小知识：", unknown:"？", langBtn:"EN",
-       peekTag:"提前查看 · ", lockedQ:v => `「${v}」还没有合成解锁。要放弃合成，直接查看这位画家的介绍吗？`, peekYes:"直接查看", peekNo:"继续挑战"},
+       peekTag:"提前查看 · ", lockedQ:v => `「${v}」还没有合成解锁。要放弃合成，直接查看这位画家的介绍吗？`, peekYes:"直接查看", peekNo:"继续挑战",
+       introEvery:"每局都弹出画家介绍", introHint:"关闭后，只在第一次解锁新画家时弹出"},
   en: {docTitle:"2048 · Old Masters", title:"2048 · Old Masters", sub:"Merge matching artists and travel back in time from Dalí to Lascaux Cave",
        score:"SCORE", best:"BEST", hint:"Arrow keys / WASD / swipe", newGame:"New Game",
        over:"No moves left", retry:"Try again",
-       ladderTitle:"The ladder (born earlier = ranks higher; tap an artist to read more)",
+       ladderTitle:"Born earlier = ranks higher. Tap an artist to read more.", gallery:"Gallery",
        footer:"Two identical artists merge into the one born earlier.", cont:"Continue",
        newArtist:"New artist · ", tier:(v, n) => `${v} · Rank ${n}`,
        win:"🎉 You made 2048! Keep playing if you like.", final:"🏆 You've traced art all the way back to its beginnings!", fact:"Fun fact: ", unknown:"?", langBtn:"中文",
-       peekTag:"Sneak peek · ", lockedQ:v => `${v} hasn't been unlocked yet. Skip the challenge and read about this artist now?`, peekYes:"Show me", peekNo:"Keep playing"}
+       peekTag:"Sneak peek · ", lockedQ:v => `${v} hasn't been unlocked yet. Skip the challenge and read about this artist now?`, peekYes:"Show me", peekNo:"Keep playing",
+       introEvery:"Show artist intros every game", introHint:"When off, intros only appear the first time you unlock an artist"}
 };
 let lang = (function(){
   try { const s = JSON.parse(localStorage.getItem("art2048_lang")); if (s === "zh" || s === "en") return s; } catch(e) {}
@@ -124,9 +126,11 @@ const POS = i => (2.5 + i * 24.375) + "%";
 const board = document.getElementById("board");
 const overEl = document.getElementById("over");
 const modal = document.getElementById("modal");
+let galleryOpen = false;
 let grid, score = 0, best = 0, busy = false, nextId = 1, modalQueue = [], modalOpen = false;
 let met = new Set([0]);      // 图鉴：曾经解锁过的画家（跨局保留）
 let gameMet = new Set();     // 本局已经弹过介绍的画家
+let introEvery = load("art2048_every") !== false;  // 每局都弹出画家介绍（默认开）
 let peeked = new Set(load("art2048_peek") || []);  // 没解锁但选择了提前查看的画家
 const els = new Map();
 
@@ -208,7 +212,7 @@ function canMove(){
 }
 
 function move(dir){
-  if (busy || modalOpen || overEl.classList.contains("show")) return;
+  if (busy || modalOpen || galleryOpen || overEl.classList.contains("show")) return;
   const v = {up:[-1,0], down:[1,0], left:[0,-1], right:[0,1]}[dir];
   const rows = [0,1,2,3], cols = [0,1,2,3];
   if (v[0] === 1) rows.reverse();
@@ -249,13 +253,17 @@ function move(dir){
 
   setTimeout(() => {
     removals.forEach(t => { const el = els.get(t.id); if (el) el.remove(); els.delete(t.id); });
-    const fresh = [];
+    const fresh = [], wasMet = new Set(met);
     creations.forEach(p => {
       makeTile(p.r, p.c, p.lv, "merged");
       score += val(p.lv);
       met.add(p.lv);
       // 本局第一次合成出这一阶时弹介绍；更低阶里本局还没介绍过的（比如达利）一并先介绍
-      for (let l = 0; l <= p.lv; l++) if (!gameMet.has(l)){ gameMet.add(l); fresh.push(l); }
+      // 如果关掉了“每局都弹出”，就只在第一次真正解锁某位画家时弹出
+      for (let l = 0; l <= p.lv; l++) if (!gameMet.has(l)){
+        gameMet.add(l);
+        if (introEvery || !wasMet.has(l)) fresh.push(l);
+      }
     });
     spawn();
     updateScores(); renderLadder(); save();
@@ -269,6 +277,7 @@ function move(dir){
 // 介绍弹窗
 let curItem = null;
 function showNext(){
+  if (modalQueue.length && !load("art2048_introSeen")){ store("art2048_introSeen", true); showIntroToggle(); }
   curItem = modalQueue.shift() || null;
   if (!curItem){ modal.classList.remove("show"); modalOpen = false; return; }
   renderModal();
@@ -296,6 +305,7 @@ document.getElementById("mBtn").addEventListener("click", showNext);
 modal.addEventListener("click", e => { if (e.target === modal) showNext(); });
 
 function renderLadder(){
+  document.getElementById("galleryCount").textContent = `${met.size}/${A.length}`;
   const lad = document.getElementById("ladder");
   lad.innerHTML = "";
   A.forEach((a, i) => {
@@ -342,6 +352,10 @@ confirmEl.addEventListener("click", e => { if (e.target === confirmEl) closeConf
 
 // 输入
 document.addEventListener("keydown", e => {
+  if (galleryOpen && !modalOpen){
+    if (e.key === "Escape"){ e.preventDefault(); toggleGallery(false); }
+    return;
+  }
   if (confirmLv !== null){
     if (e.key === "Escape"){ e.preventDefault(); closeConfirm(false); }
     return;
@@ -354,6 +368,7 @@ document.addEventListener("keydown", e => {
   if (map[e.key]){ e.preventDefault(); move(map[e.key]); }
 });
 let sx = 0, sy = 0;
+board.addEventListener("touchmove", e => e.preventDefault(), {passive: false});  // 在棋盘上滑动时不让页面跟着滚
 board.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive: true});
 board.addEventListener("touchend", e => {
   const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
@@ -361,6 +376,16 @@ board.addEventListener("touchend", e => {
   move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
 });
 document.getElementById("newBtn").addEventListener("click", newGame);
+// 画家图鉴面板
+const galleryEl = document.getElementById("gallery");
+function toggleGallery(open){
+  galleryOpen = open;
+  galleryEl.classList.toggle("show", open);
+  galleryEl.setAttribute("aria-hidden", open ? "false" : "true");
+}
+document.getElementById("galleryBtn").addEventListener("click", () => toggleGallery(true));
+document.getElementById("galleryClose").addEventListener("click", () => toggleGallery(false));
+galleryEl.addEventListener("click", e => { if (e.target === galleryEl) toggleGallery(false); });
 document.getElementById("retryBtn").addEventListener("click", newGame);
 
 // 语言切换
@@ -374,6 +399,13 @@ function applyLang(){
   renderLadder();
   if (modalOpen) renderModal();
 }
+// “每局都弹出介绍”开关：看过第一次介绍后才出现
+const introCb = document.getElementById("introEvery");
+function showIntroToggle(){ document.getElementById("introRow").hidden = !load("art2048_introSeen"); }
+introCb.checked = introEvery;
+introCb.addEventListener("change", () => { introEvery = introCb.checked; store("art2048_every", introEvery); });
+showIntroToggle();
+
 document.getElementById("langBtn").addEventListener("click", () => {
   lang = lang === "en" ? "zh" : "en";
   store("art2048_lang", lang);

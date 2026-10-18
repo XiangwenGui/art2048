@@ -1,5 +1,5 @@
 // 改动文件后把版本号加一，旧缓存就会被替换
-const CACHE = "art2048-v7";
+const CACHE = "art2048-v9";
 const FILES = ["./", "index.html", "style.css", "game.js", "manifest.json",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "img/lascaux.jpg"];
 self.addEventListener("install", e => {

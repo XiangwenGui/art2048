@@ -15,28 +15,51 @@
 <link rel="icon" href="icons/icon-192.png">
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar"><button class="lang" id="langBtn" aria-label="Switch language">EN</button></div>
-  <header>
-    <div>
-      <h1 data-i18n="title">2048 · 名画家</h1>
-      <p class="sub" data-i18n="sub">合并相同的画家，从达利一路回溯到达·芬奇</p>
-    </div>
-    <div class="scores">
+<div class="app">
+
+  <main class="stage">
+   <div class="play">
+    <header class="top">
+      <div class="titles">
+        <h1 data-i18n="title">2048 · 名画家</h1>
+        <p class="sub" data-i18n="sub">合并相同的画家，从达利一路回溯到拉斯科洞穴</p>
+      </div>
+      <button class="lang" id="langBtn" aria-label="Switch language">EN</button>
+    </header>
+    <div class="hud">
       <div class="score"><span data-i18n="score">分数</span><b id="score">0</b></div>
       <div class="score"><span data-i18n="best">最高</span><b id="best">0</b></div>
+      <button id="newBtn" data-i18n="newGame">新游戏</button>
     </div>
-  </header>
-  <div class="bar">
-    <span class="hint" data-i18n="hint">方向键 / WASD / 手指滑动</span>
-    <button id="newBtn" data-i18n="newGame">新游戏</button>
+
+      <div class="board" id="board">
+        <div class="over" id="over"><p data-i18n="over">没有可以移动的方块了</p><button id="retryBtn" data-i18n="retry">再来一局</button></div>
+      </div>
+
+    <nav class="bottom">
+      <span class="hint" data-i18n="hint">方向键 / WASD / 手指滑动</span>
+      <button id="galleryBtn" class="ghost"><span data-i18n="gallery">画家图鉴</span> <b id="galleryCount"></b></button>
+    </nav>
+   </div>
+  </main>
+</div>
+
+<div class="sheet" id="gallery" aria-hidden="true">
+  <div class="sheet-card" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <h2 data-i18n="gallery">画家图鉴</h2>
+      <button class="close" id="galleryClose" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="ladder-title" data-i18n="ladderTitle">越早出生越高阶，点击画家查看介绍</div>
+      <div class="ladder" id="ladder"></div>
+      <div class="intro-row" id="introRow" hidden>
+        <label class="switch"><input type="checkbox" id="introEvery" checked><span class="slider"></span><span class="sw-label" data-i18n="introEvery">每局都弹出画家介绍</span></label>
+        <div class="sw-hint" data-i18n="introHint">关闭后，只在第一次解锁新画家时弹出</div>
+      </div>
+      <footer data-i18n="footer">两个相同的画家合并，会变成更早出生的那一位。</footer>
+    </div>
   </div>
-  <div class="board" id="board">
-    <div class="over" id="over"><p data-i18n="over">没有可以移动的方块了</p><button id="retryBtn" data-i18n="retry">再来一局</button></div>
-  </div>
-  <div class="ladder-title" data-i18n="ladderTitle">画家阶梯（越早出生越高阶，点击已解锁的画家查看介绍）</div>
-  <div class="ladder" id="ladder"></div>
-  <footer data-i18n="footer">两个相同的画家合并，会变成更早出生的那一位。</footer>
 </div>
 
 <div class="modal" id="modal">
