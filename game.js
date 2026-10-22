@@ -18,7 +18,8 @@ const I18N = {
     win: "🎉 你合成出了 2048！可以继续玩下去。", final: "🏆 你一路回到了冰河时代！",
     factLabel: "小知识", fact: "小知识：", natureLink: "《自然》论文 ↗",
     coachTap: "点一下，认识第一位画家", coachSwipe: "向任意方向滑动，把两位相同的画家合在一起",
-    lockedQ: (name, v) => `还没有合成出「${v}」。要跳过合成，直接查看这位画家的介绍吗？`, peekYes: "直接查看", peekNo: "继续挑战",
+    lockedQ: v => `「${v}」这位画家还没有解锁。要继续去玩、合成出来解锁，还是放弃挑战，直接查看？`, peekYes: "直接查看", peekNo: "继续去玩",
+    someWork: v => `「${v}」的作品`, unknown: "？",
     pieceGot: "获得作品拼图块 ＋1", pieceDone: "拼图集齐！", appeared: n => `${n}出现了 · 拼图块 ＋1`,
     pieceEvery: n => `每局第一次出现${n}，就能再拿到一块`,
     over: "没有可以移动的方块了", ended: "本局结算", overTitle: "这一局结束了",
@@ -51,7 +52,8 @@ const I18N = {
     win: "🎉 You made 2048! Keep playing if you like.", final: "🏆 You've made it all the way back to the Ice Age!",
     factLabel: "Fun fact", fact: "Fun fact: ", natureLink: "Nature paper ↗",
     coachTap: "Tap to meet your first artist", coachSwipe: "Swipe in any direction to merge two matching artists",
-    lockedQ: (name, v) => `You haven't made ${v} yet. Skip the challenge and read about this artist now?`, peekYes: "Show me", peekNo: "Keep playing",
+    lockedQ: v => `The ${v} artist is still locked. Keep playing to unlock them, or skip the challenge and look now?`, peekYes: "Look now", peekNo: "Keep playing",
+    someWork: v => `the ${v} artwork`, unknown: "?",
     pieceGot: "Puzzle piece +1", pieceDone: "Puzzle complete!", appeared: n => `${n} appeared · Puzzle piece +1`,
     pieceEvery: n => `Get another piece the first time ${n} appears in a game`,
     over: "No moves left", ended: "Game summary", overTitle: "Game over",
@@ -88,6 +90,8 @@ const en = () => lang === "en";
 const nm = lv => en() ? A[lv].short : A[lv].tile;            // 短名
 const fullName = lv => en() ? A[lv].nameEn : A[lv].name;
 const workName = lv => en() ? A[lv].workEn : A[lv].work;
+const known = lv => met.has(lv) || peeked.has(lv);              // 合成过或提前查看过，才显示名字
+const workLabel = lv => known(lv) ? workName(lv) : T().someWork(fmt(val(lv)));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 // ---------- 存档 ----------
@@ -351,6 +355,7 @@ function workBlock(lv){
 }
 function renderComplete(lv){
   const a = A[lv], t = T();
+  if (!known(lv)){ peeked.add(lv); store("oma_peek", [...peeked]); }  // 靠颜料拼完的作品，画家也随之揭晓
   card.innerHTML = `<div class="card-body complete">
     <div class="done-label">${t.workDone}</div>
     <div class="muted small center">${t.allPieces(total(lv))}</div>
@@ -416,11 +421,11 @@ function showSummary(res, isOver){
   let paintBox = "";
   if (res.awards.length){
     paintBox = res.awards.map(p => `<div class="sum-award">${puzzleHTML(p.lv, {newIdx: p.idx, thumb: true})}
-      <div><div class="pb-title">${esc(workName(p.lv))}</div><div>${p.done ? t.done : t.addedOne(p.have, p.total)}</div></div></div>`).join("");
+      <div><div class="pb-title">${esc(workLabel(p.lv))}</div><div>${p.done ? t.done : t.addedOne(p.have, p.total)}</div></div></div>`).join("");
     paintBox = `<div class="gold-label">${t.paintEnough}</div>` + paintBox;
   }
   const bar = tgt < 0 ? `<div class="muted small">${t.allHighDone}</div>` :
-    `<div class="bar-row"><span>${t.toNext} · ${esc(workName(tgt))}</span><span class="num">${fmt(paint)} / ${fmt(PIECE_COST)}</span></div>
+    `<div class="bar-row"><span>${t.toNext} · ${esc(workLabel(tgt))}</span><span class="num">${fmt(paint)} / ${fmt(PIECE_COST)}</span></div>
      <div class="bar"><i style="width:${Math.min(100, paint / PIECE_COST * 100)}%"></i></div>`;
   const got = gameGot.map(g => {
     const have = pieces[g.lv].size, tot = total(g.lv), d = have >= tot;
@@ -478,10 +483,10 @@ function openGallery(){ renderGallery(); openPage("gallery"); }
 function renderGallery(){
   const t = T(), tgt = nextPaintTarget();
   const items = A.map((a, lv) => {
-    const d = isDone(lv), h = pieces[lv].size;
-    return `<button class="g-item" data-lv="${lv}">
+    const d = isDone(lv), h = pieces[lv].size, k = known(lv);
+    return `<button class="g-item${k ? "" : " locked"}" data-lv="${lv}">
       <div class="g-frame${d ? " done" : ""}">${puzzleHTML(lv, {thumb: true})}</div>
-      <div class="g-name">${esc(nm(lv))}</div>
+      <div class="g-name">${k ? esc(nm(lv)) : t.unknown}</div>
       <div class="g-sub">${fmt(val(lv))} · ${d ? t.complete : `${h} / ${total(lv)}`}</div></button>`;
   }).join("");
   document.getElementById("galleryBody").innerHTML = `
@@ -489,14 +494,16 @@ function renderGallery(){
       <div class="bar-row"><span>${t.galleryDone(doneCount(), A.length)}</span>
         <span class="muted">${t.paint} <span class="num">${fmt(paint)} / ${fmt(PIECE_COST)}</span></span></div>
       <div class="bar"><i style="width:${tgt < 0 ? 100 : Math.min(100, paint / PIECE_COST * 100)}%"></i></div>
-      <div class="muted small">${t.paintNote}${tgt >= 0 ? " " + t.nextFor(esc(workName(tgt))) : ""}</div>
+      <div class="muted small">${t.paintNote}${tgt >= 0 ? " " + t.nextFor(esc(workLabel(tgt))) : ""}</div>
     </div>
     <div class="g-grid">${items}</div>
     <button class="linkish" id="creditsBtn">${t.creditsLink}</button>`;
   document.getElementById("creditsBtn").onclick = () => { renderCredits(); openPage("credits"); };
 }
 document.getElementById("galleryBody").addEventListener("click", e => {
-  const b = e.target.closest(".g-item"); if (b) openArtist(+b.dataset.lv);
+  const b = e.target.closest(".g-item"); if (!b) return;
+  const lv = +b.dataset.lv;
+  if (known(lv)) openArtist(lv); else askPeek(lv);   // 没解锁：先问是继续去玩，还是直接查看
 });
 
 let artistLv = null;
@@ -528,7 +535,7 @@ function renderArtist(){
           const tgt = nextPaintTarget();
           const prog = tgt === lv ? `<div class="bar-row"><span>${t.paintNow}</span><span class="num">${fmt(paint)} / ${fmt(PIECE_COST)}</span></div>
             <div class="bar"><i style="width:${Math.min(100, paint / PIECE_COST * 100)}%"></i></div>`
-            : `<p class="muted small">${t.paintQueue(esc(workName(tgt)))}</p>`;
+            : `<p class="muted small">${t.paintQueue(esc(workLabel(tgt)))}</p>`;
           return `<p class="small"><b>${t.paintGetT}</b><br>${t.paintGet}</p>${prog}`;
         })();
     work = `<div class="work-pz">${puzzleHTML(lv, {q: true, vh: 42})}</div>
@@ -555,7 +562,8 @@ document.getElementById("artistBody").addEventListener("click", e => {
 function renderCredits(){
   const t = T();
   document.getElementById("creditsBody").innerHTML = `<p class="small">${t.creditsIntro}</p>` +
-    A.map((a, lv) => `<div class="credit"><a href="${a.link}" target="_blank" rel="noopener">${esc(fullName(lv))} · ${esc(workName(lv))}</a>
+    A.map((a, lv) => known(lv) ? `<div class="credit"><a href="${a.link}" target="_blank" rel="noopener">${esc(fullName(lv))} · ${esc(workName(lv))}</a>` :
+      `<div class="credit"><span class="muted">${t.unknown} · ${esc(workLabel(lv))}</span>
       <div class="muted small">${esc(a.credit)}</div></div>`).join("") +
     `<p class="muted small">${t.creditsUse}</p>`;
 }
@@ -565,13 +573,21 @@ const confirmEl = document.getElementById("confirm");
 let confirmLv = null;
 function askPeek(lv){
   confirmLv = lv;
-  document.getElementById("cText").textContent = T().lockedQ(fullName(lv), fmt(val(lv)));
+  document.getElementById("cText").textContent = T().lockedQ(fmt(val(lv)));
   confirmEl.classList.add("show");
 }
 function closeConfirm(yes){
   confirmEl.classList.remove("show");
   const lv = confirmLv; confirmLv = null;
-  if (yes && lv !== null){ peeked.add(lv); store("oma_peek", [...peeked]); renderArtist(); }
+  if (lv === null) return;
+  if (yes){
+    peeked.add(lv); store("oma_peek", [...peeked]);
+    if (openPages.includes("gallery")) renderGallery();
+    if (openPages.includes("artist") && artistLv === lv) renderArtist(); else openArtist(lv);
+  } else {
+    // 继续去玩：回到棋盘（如果这局已经结束，就回到结算页）
+    ["credits", "artist", "gallery"].forEach(p => { if (openPages.includes(p)) closePage(p); });
+  }
 }
 document.getElementById("cYes").addEventListener("click", () => closeConfirm(true));
 document.getElementById("cNo").addEventListener("click", () => closeConfirm(false));
