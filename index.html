@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>2048 · 名画家版</title>
+<title>名画2048</title>
 <link rel="stylesheet" href="style.css">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#faf6ee">
@@ -16,13 +16,12 @@
 </head>
 <body>
 <div class="app">
-
   <main class="stage">
    <div class="play">
     <header class="top">
       <div class="titles">
-        <h1 data-i18n="title">2048 · 名画家</h1>
-        <p class="sub" data-i18n="sub">合并相同的画家，从达利一路回溯到拉斯科洞穴</p>
+        <h1 data-i18n="title">名画2048</h1>
+        <p class="sub" data-i18n="sub"></p>
       </div>
       <button class="lang" id="langBtn" aria-label="Switch language">EN</button>
     </header>
@@ -31,54 +30,56 @@
       <div class="score"><span data-i18n="best">最高</span><b id="best">0</b></div>
       <button id="newBtn" data-i18n="newGame">新游戏</button>
     </div>
-
-      <div class="board" id="board">
-        <div class="over" id="over"><p data-i18n="over">没有可以移动的方块了</p><button id="retryBtn" data-i18n="retry">再来一局</button></div>
-      </div>
-
+    <div class="board" id="board"></div>
     <nav class="bottom">
-      <span class="hint" data-i18n="hint">方向键 / WASD / 手指滑动</span>
-      <button id="galleryBtn" class="ghost"><span data-i18n="gallery">画家图鉴</span> <b id="galleryCount"></b></button>
+      <label class="switch mini"><input type="checkbox" id="introEvery" checked><span class="slider"></span><span class="sw-label" data-i18n="autoIntro">每局自动介绍</span></label>
+      <button id="galleryBtn" class="ghost"><span data-i18n="gallery">画廊</span> <b id="galleryCount"></b></button>
     </nav>
    </div>
   </main>
 </div>
 
-<div class="sheet" id="gallery" aria-hidden="true">
-  <div class="sheet-card" role="dialog" aria-modal="true">
-    <div class="sheet-head">
-      <h2 data-i18n="gallery">画家图鉴</h2>
-      <button class="close" id="galleryClose" aria-label="Close">✕</button>
-    </div>
-    <div class="sheet-body">
-      <div class="ladder-title" data-i18n="ladderTitle">越早出生越高阶，点击画家查看介绍</div>
-      <div class="ladder" id="ladder"></div>
-      <div class="intro-row" id="introRow" hidden>
-        <label class="switch"><input type="checkbox" id="introEvery" checked><span class="slider"></span><span class="sw-label" data-i18n="introEvery">每局都弹出画家介绍</span></label>
-        <div class="sw-hint" data-i18n="introHint">关闭后，只在第一次解锁新画家时弹出</div>
-      </div>
-      <footer data-i18n="footer">两个相同的画家合并，会变成更早出生的那一位。</footer>
-    </div>
+<!-- 顶部小提示：获得拼图块 -->
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<!-- 画廊（可滚动） -->
+<div class="page" id="gallery" aria-hidden="true">
+  <div class="page-head">
+    <button class="back" id="galleryClose" data-i18n="back">‹ 返回</button>
+    <h2 data-i18n="gallery">画廊</h2>
+    <span class="head-spacer"></span>
   </div>
+  <div class="page-body" id="galleryBody"></div>
 </div>
 
-<div class="modal" id="modal">
-  <div class="card" role="dialog" aria-modal="true">
-    <div class="card-top" id="mTop">
-      <div class="tier" id="mTier"></div>
-      <div class="big" id="mZh"></div>
-      <div class="en-full" id="mEn"></div>
-    </div>
-    <div class="card-body">
-      <div class="meta" id="mMeta"></div>
-      <p class="win" id="mWin"></p>
-      <p id="mDesc"></p>
-      <p class="fact" id="mFact"></p>
-      <button id="mBtn" data-i18n="cont">继续</button>
-    </div>
+<!-- 画家卡片：上半画家介绍，下半作品拼图 -->
+<div class="page" id="artist" aria-hidden="true">
+  <div class="page-head">
+    <button class="back" id="artistClose" data-i18n="backGallery">‹ 画廊</button>
+    <span class="head-tier" id="artistTier"></span>
   </div>
+  <div class="page-body" id="artistBody"></div>
 </div>
 
+<!-- 图片来源 -->
+<div class="page" id="credits" aria-hidden="true">
+  <div class="page-head">
+    <button class="back" id="creditsClose" data-i18n="backGallery">‹ 画廊</button>
+    <h2 data-i18n="credits">图片来源</h2>
+    <span class="head-spacer"></span>
+  </div>
+  <div class="page-body" id="creditsBody"></div>
+</div>
+
+<!-- 局末结算 -->
+<div class="page summary" id="summary" aria-hidden="true">
+  <div class="page-body" id="summaryBody"></div>
+</div>
+
+<!-- 介绍卡 / 拼完揭晓 -->
+<div class="modal" id="modal"><div class="card" role="dialog" aria-modal="true" id="card"></div></div>
+
+<!-- 提前查看确认 -->
 <div class="modal" id="confirm">
   <div class="card confirm-card" role="alertdialog" aria-modal="true">
     <div class="card-body">
@@ -89,6 +90,10 @@
   </div>
 </div>
 
+<!-- 大图 -->
+<div class="viewer" id="viewer"><img id="viewerImg" alt=""><p data-i18n="tapClose">点任意处关闭</p></div>
+
+<script src="data.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
