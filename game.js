@@ -1,13 +1,16 @@
 // 艺术时光2048 / 2048 · Art Through Time
 // 17 阶：索引 0 = 2（萨金特，最晚出生）… 索引 10 = 2048（丢勒）… 索引 16 = 131072（拉斯科洞穴）
 const A = ARTISTS;
-const VERSION = "v18 · 2026-10-26";
+const VERSION = "v20 · 2026-10-26";
 const N = 4, MAX = A.length - 1;
 const HIGH = 11;                 // 4096（达·芬奇）及以上为高阶：拼图 2×2，主要靠颜料
 const PIECE_COST = 10000;        // 一块拼图需要的颜料（TestFlight 期间再按实际得分调整）
 const val = lv => 2 * 2 ** lv;
 const total = lv => A[lv].cols * A[lv].rows;
 const fmt = n => n.toLocaleString("en-US");
+
+// App 版（Capacitor）会提供震动；网页版没有，调用时直接跳过
+const haptic = kind => { try { if (window.appHaptic) window.appHaptic(kind); } catch(e){} };
 
 // ---------- 界面文字 ----------
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -214,7 +217,7 @@ let pieces = (load("oma_pieces") || []).map(a => new Set(a)); // 每幅作品已
 while (pieces.length < A.length) pieces.push(new Set());
 let paint = load("oma_paint") || 0;                  // 颜料（朝下一块的进度）
 let introEvery = load("oma_every") !== false;
-let tut = load("oma_tut") || "tap";                 // tap → swipe → done
+let tut = load("oma_tut") || "tap";                 // tap → intro → swipe → done（见“新手引导”）
 let tips = load("oma_tips") || {};                    // 看过的新手说明卡
 function savePieces(){ store("oma_pieces", pieces.map(s => [...s])); }
 const isDone = lv => pieces[lv].size >= total(lv);
@@ -332,13 +335,14 @@ function handleAppear(lvs){
       if (tut === "tap"){ pendingTutPiece = piece; continue; }  // 等新手引导的介绍关掉后再提示
       if (piece) toast(piece);
     } else if (introEvery || !wasMet){
+      if (!wasMet) haptic("new");
       met.add(lv);
       queue.push({k: "intro", lv, isNew: true, piece});
     } else {
       met.add(lv);
       if (piece) toast(piece);
     }
-    if (piece && piece.done) queue.push({k: "complete", lv});
+    if (piece && piece.done){ queue.push({k: "complete", lv}); haptic("done"); }
   }
   store("oma_met", [...met]);
   renderCount();
@@ -349,7 +353,7 @@ function handleAppear(lvs){
 function blocked(){ return busy || modalOpen || openPages.length || ended; }
 function move(dir){
   if (blocked()) return;
-  if (tut === "tap"){ nudgeCoach(); return; }
+  if (tut === "tap" || tut === "intro"){ nudgeCoach(); return; }
   const v = {up:[-1,0], down:[1,0], left:[0,-1], right:[0,1]}[dir];
   const rows = [0,1,2,3], cols = [0,1,2,3];
   if (v[0] === 1) rows.reverse();
@@ -378,7 +382,6 @@ function move(dir){
   }
   if (!moved) return;
   busy = true;
-  if (tut === "swipe") finishTutorial();
   for (const row of grid) for (const t of row) if (t && !t.placeholder) place(els.get(t.id), t.r, t.c);
   for (const t of removals){ const el = els.get(t.id); if (el){ place(el, t.r, t.c); el.classList.remove("new", "merged"); } }
   setTimeout(() => {
@@ -386,7 +389,10 @@ function move(dir){
     const appeared = [];
     if (creations.length && !tips.merge){ tips.merge = true; store("oma_tips", tips); queue.push({k: "tip", id: "merge"}); }
     creations.forEach(p => { makeTile(p.r, p.c, p.lv, "merged"); score += val(p.lv); appeared.push(p.lv); });
-    const s = spawn(); if (s) appeared.push(s.lv);
+    if (creations.length) haptic("merge");
+    const s = spawn(tut === "swipe"); if (s) appeared.push(s.lv);   // 引导期间只出萨金特
+    if (tut === "swipe" && creations.length) finishTutorial();       // 第一次合成后引导结束
+    else if (tut === "swipe") requestAnimationFrame(showCoach);       // 方块挪了位置，提示也换个不挡的地方
     updateScores();
     handleAppear(appeared);
     save();
@@ -410,16 +416,10 @@ function showNext(){
   card.scrollTop = 0;
 }
 function afterModals(){
-  if (tut === "swipe"){
-    if (pendingTutPiece){
-      const p = pendingTutPiece; pendingTutPiece = null;
-      toast(p, () => {
-        if (!tips.galleryEarly){ tips.galleryEarly = true; store("oma_tips", tips); queue.push({k: "tip", id: "galleryEarly"}); showNext(); }
-        else showCoach();
-      });
-    }
-    else showCoach();
-  }
+  if (tut === "intro"){
+    if (pendingTutPiece){ const p = pendingTutPiece; pendingTutPiece = null; toast(p, stepIntro); }
+    else stepIntro();
+  } else if (tut === "swipe") showCoach();
   if (!ended && grid && !canMove()) gameOver();
 }
 // 多段文字：空行分段；[文字](网址) 变成链接
@@ -587,7 +587,7 @@ function showSummary(res, isOver){
 // ---------- 新游戏 ----------
 function newGame(){
   clearBoard(); score = 0; gameSeen = new Set(); gameGot = []; ended = false;
-  const first = [spawn(tut === "tap"), spawn(tut === "tap")].filter(Boolean).map(t => t.lv);
+  const first = [spawn(tut !== "done"), spawn(tut !== "done")].filter(Boolean).map(t => t.lv);
   updateScores(); save();
   if (tut === "tap") requestAnimationFrame(showCoach);
   handleAppear(first);
@@ -595,6 +595,7 @@ function newGame(){
 }
 document.getElementById("newBtn").addEventListener("click", () => {
   if (blocked() && !ended) return;
+  if (tut === "tap" || tut === "intro"){ nudgeCoach(); return; }
   if (ended || score === 0){ if (!ended) settle(); newGame(); return; }
   const res = settle();
   if (res) showSummary(res, false);
@@ -735,6 +736,7 @@ viewer.addEventListener("click", () => viewer.classList.remove("show"));
 
 document.getElementById("galleryBtn").addEventListener("click", () => {
   if (modalOpen){ logErr("gallery tap ignored: modal open"); return; }
+  if (tut === "tap" || tut === "intro"){ nudgeCoach(); return; }
   document.getElementById("galleryBtn").classList.remove("pulse");
   openGallery();
   if (!tips.galleryEarly){ tips.galleryEarly = true; store("oma_tips", tips); queue.push({k: "tip", id: "galleryEarly"}); showNext(); }
@@ -774,9 +776,10 @@ function tapAt(x, y){
   const el = document.elementFromPoint(x, y), tile = el && el.closest(".tile");
   if (!tile) return;
   const lv = +tile.dataset.lv;
+  if (tut === "intro") return;
   if (tut === "tap"){
     if (lv !== 0){ nudgeCoach(); return; }
-    tut = "swipe"; store("oma_tut", tut); hideCoach();
+    tut = "intro"; store("oma_tut", tut); hideCoach();
     queue.push({k: "intro", lv: 0, isNew: true}); showNext();
     return;
   }
@@ -798,13 +801,26 @@ function showCoach(){
     coachEl.style.bottom = top < 50 ? "" : `calc(${100 - top}% + 1.5%)`;
   } else if (tut === "swipe"){
     coachEl.textContent = T().coachSwipe;
-    coachEl.style.top = "3%"; coachEl.style.bottom = "";
+    // 放在没有方块的那一行，别挡住萨金特
+    const rowHas = r => grid[r].some(Boolean);
+    const free = [0, 1, 2, 3].find(r => !rowHas(r));
+    if (free === undefined || free === 0){ coachEl.style.top = "3%"; coachEl.style.bottom = ""; }
+    else if (!rowHas(N - 1)){ coachEl.style.top = ""; coachEl.style.bottom = "3%"; }
+    else { coachEl.style.top = `calc(${free * 25}% + 3%)`; coachEl.style.bottom = ""; }
   } else { hideCoach(); return; }
   coachEl.classList.add("show");
 }
 function hideCoach(){ coachEl.classList.remove("show"); board.querySelectorAll(".tile.coach").forEach(t => t.classList.remove("coach")); }
 function nudgeCoach(){ coachEl.classList.remove("nudge"); void coachEl.offsetWidth; coachEl.classList.add("nudge"); }
 function finishTutorial(){ tut = "done"; store("oma_tut", tut); hideCoach(); }
+// 新手引导顺序（每一步都锁住其他操作）：
+// tap：只能点萨金特 → intro：萨金特介绍 → 顶部“拼图块 ＋1” → 画廊说明卡（棋盘、画廊、新游戏都不能点）
+// → swipe：提示滑动，期间只出萨金特，直到两位萨金特合成 → 合成规则卡、布格罗介绍 → done：正式开始
+function stepIntro(){
+  if (tut !== "intro") return;
+  if (!tips.galleryEarly){ tips.galleryEarly = true; store("oma_tips", tips); queue.push({k: "tip", id: "galleryEarly"}); showNext(); return; }
+  tut = "swipe"; store("oma_tut", tut); showCoach();
+}
 
 // ---------- 语言 ----------
 // 标题太长时（英文标题、窄屏）自动缩小字号，保证一行放得下
@@ -889,9 +905,10 @@ if (st && Array.isArray(st.cells) && st.cells.length === 16 && st.cells.some(x =
   updateScores();
 } else newGame();
 applyLang(); renderCount();
-if (tut === "tap") showCoach();
+if (tut === "tap" || tut === "swipe") showCoach();
+else if (tut === "intro") stepIntro();
 if (!ended && !canMove()) gameOver();
 
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && !window.IS_APP) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
