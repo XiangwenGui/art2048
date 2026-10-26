@@ -16,7 +16,7 @@ body{position:fixed;inset:0}
 .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;container-type:size}
 .play{width:min(100cqw, 100cqh - var(--top-h) - var(--hud-h) - var(--nav-h) - 3 * var(--play-gap));display:flex;flex-direction:column;gap:var(--play-gap)}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;height:var(--top-h)}
-.titles{min-width:0}
+.titles{min-width:0;flex:1}
 h1{margin:0;font-size:clamp(24px,7vw,34px);line-height:1.1;white-space:nowrap}
 .sub{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lang{flex-shrink:0;margin-top:4px;background:transparent;color:var(--accent);border:1px solid var(--accent);padding:4px 14px;font-size:13px;border-radius:999px}
@@ -29,7 +29,10 @@ h1{margin:0;font-size:clamp(24px,7vw,34px);line-height:1.1;white-space:nowrap}
 .bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;height:var(--nav-h)}
 .bottom .ghost{padding:7px 14px;border-radius:99px;font-size:14px}
 .bottom .ghost b{font-family:system-ui,sans-serif;font-weight:600;font-size:12px;opacity:.8}
-@media (max-height:700px){ .sub{display:none} .app{--top-h:42px;--hud-h:48px;--play-gap:10px} .score b{font-size:18px} }
+/* 英文副标题较长：允许折成两行，标题区相应加高 */
+html[lang="en"] .app{--top-h:76px}
+html[lang="en"] .sub{white-space:normal;font-size:12px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+@media (max-height:700px){ html[lang="en"] .sub{display:none} html[lang="en"] .app{--top-h:42px} .sub{display:none} .app{--top-h:42px;--hud-h:48px;--play-gap:10px} .score b{font-size:18px} }
 
 /* 方块 */
 .cell,.tile{position:absolute;width:21.875%;height:21.875%;border-radius:6px}
@@ -90,7 +93,11 @@ html[lang="en"] .tile .en{font-style:normal;font-family:system-ui,sans-serif}
 .card-body{padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px}
 .card-body p{margin:0;font-size:15px;line-height:1.7}
 .meta{font-size:13px;color:var(--muted);line-height:1.5}
-.fact{background:#f3ece0;border-radius:8px;padding:10px 12px;font-size:14px!important}
+.fact{background:#f3ece0;border-radius:8px;padding:10px 12px;font-size:14px!important;line-height:1.7}
+.fact b{display:inline}
+.fact p{display:inline;margin:0;font-size:14px!important}
+.fact p+p{display:block;margin-top:8px}
+.card-body > p + p, .panel > p + p{margin-top:0}
 .fact a{color:var(--accent)}
 .win{font-weight:700;color:var(--gold)}
 .card-body button,.card-body .btn{width:100%}

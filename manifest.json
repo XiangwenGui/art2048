@@ -1,6 +1,6 @@
 {
-  "name": "名画2048 · Old Masters",
-  "short_name": "名画2048",
+  "name": "艺术时光2048 · Art Through Time",
+  "short_name": "艺术时光2048",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

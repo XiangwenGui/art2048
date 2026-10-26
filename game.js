@@ -1,7 +1,7 @@
-// 名画2048 / 2048 · Old Masters
+// 艺术时光2048 / 2048 · Art Through Time
 // 17 阶：索引 0 = 2（萨金特，最晚出生）… 索引 10 = 2048（丢勒）… 索引 16 = 131072（拉斯科洞穴）
 const A = ARTISTS;
-const VERSION = "v13 · 2026-10-24";
+const VERSION = "v18 · 2026-10-26";
 const N = 4, MAX = A.length - 1;
 const HIGH = 11;                 // 4096（达·芬奇）及以上为高阶：拼图 2×2，主要靠颜料
 const PIECE_COST = 10000;        // 一块拼图需要的颜料（TestFlight 期间再按实际得分调整）
@@ -10,82 +10,183 @@ const total = lv => A[lv].cols * A[lv].rows;
 const fmt = n => n.toLocaleString("en-US");
 
 // ---------- 界面文字 ----------
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const I18N = {
   zh: {
-    docTitle: "名画2048", title: "名画2048", sub: "合并相同的画家，一路回到冰河时代",
-    score: "分数", best: "最高", newGame: "新游戏", autoIntro: "每局自动介绍", gallery: "画廊",
-    back: "‹ 返回", backGallery: "‹ 画廊", credits: "图片来源", cont: "继续", tapClose: "点任意处关闭",
-    newArtist: "新画家登场 · ", peekTag: "提前查看 · ", tier: (v, n) => `${v} · 第 ${n} 阶`,
-    win: "🎉 你合成出了 2048！可以继续玩下去。", final: "🏆 你一路回到了冰河时代！",
-    factLabel: "小知识", fact: "小知识：", natureLink: "《自然》论文 ↗",
-    coachTap: "点一下，认识第一位画家", coachSwipe: "向任意方向滑动，把两位相同的画家合在一起",
-    tipMergeT: "合成规则", tipMerge: "两位相同的画家合在一起，会变成一位更早出生的画家。越往上合成，离绘画的源头就越近：从 19 世纪一路回到冰河时代。",
-    tipGalleryT: "画廊", tipGallery: "每位画家都有一幅代表作，被分成几块拼图。每局第一次遇到某位画家，就能拿到他的一块；每局的得分还会变成颜料，攒够了自动帮你补一块。拼完就能看到完整画作和作品介绍。",
-    tipGallery2: "点下面的“去画廊看看”查看进度。平时也可以点主页面右下角的“画廊”。", gotIt: "知道了",
-    lockedQ: v => `「${v}」这位画家还没有解锁。要继续去玩、合成出来解锁，还是放弃挑战，直接查看？`, peekYes: "直接查看", peekNo: "继续去玩",
-    someWork: v => `「${v}」的作品`, unknown: "？",
-    pieceGot: "获得作品拼图块 ＋1", pieceDone: "拼图集齐！", appeared: n => `${n}出现了 · 拼图块 ＋1`,
-    pieceEvery: n => `每局第一次出现${n}，就能再拿到一块`,
-    over: "没有可以移动的方块了", ended: "本局结算", overTitle: "这一局结束了",
-    gameScore: "本局得分", gotPaint: "获得颜料", paintEnough: "颜料攒够了！", addedOne: (h, t) => `又拼上一块：${h} / ${t}`,
-    toNext: "距离下一块", nextFor: w => `正在拼：${w}`, allHighDone: "所有高阶作品都已拼完",
-    piecesThisGame: "本局获得的拼图块", noPieces: "这一局没有新的拼图块", sum: n => `共 ＋${n}`, done: "拼完了！",
-    toGallery: "去画廊看看", again: "再来一局",
-    galleryDone: (d, t) => `已完成 ${d} / ${t} 幅`, paint: "颜料",
-    paintNote: "每局得分都会变成颜料。颜料攒够后，会按阶数从低到高，自动拼到下一幅未完成的作品上。",
-    creditsLink: "图片来源与授权 ›", complete: "已完成",
-    secIntro: "画家介绍", secWork: "作品拼图", metChip: "已认识 ✓", peekChip: "已提前查看", lockedChip: "🔒 还没合成过",
-    unlockHint: v => `在棋盘上合成出「${v}」就会解锁。`, peekBtn: "提前查看介绍",
-    peekNote: "会先问一句，确认后才打开。", metNote: "第一次在棋盘上遇到这位画家时解锁，以后随时可以回来看。",
+    docTitle: "艺术时光2048",
+    title: "艺术时光2048",
+    sub: "合并相同的画家方块，解锁名作与故事",
+    score: "分数",
+    best: "最高",
+    newGame: "新游戏",
+    autoIntro: "每局自动显示介绍",
+    gallery: "画廊",
+    back: "‹ 返回",
+    backGallery: "‹ 画廊",
+    credits: "图片来源",
+    cont: "继续",
+    tapClose: "点任意处关闭",
+    newArtist: "新画家登场 · ",
+    peekTag: "提前查看 · ",
+    tier: (v, n) => `${v} · 第 ${n} 阶`,
+    win: "🎉 你合成出了 2048！可以继续玩下去。",
+    final: "🏆 你已抵达冰河时代的拉斯科洞穴！",
+    factLabel: "小知识",
+    fact: "小知识：",
+    natureLink: "《自然》论文 ↗",
+    coachTap: "点一下，认识第一位画家",
+    coachSwipe: "向任意方向滑动，合并相同的画家方块",
+    tipMergeT: "合成规则",
+    tipMerge: "合并两个相同的画家方块，就能解锁一位出生年代更早的画家。继续合成，看看下一位会是谁。",
+    tipGalleryT: "画廊",
+    tipGallery: "画廊为每位画家收录了一幅代表作，每幅作品都分成了几块拼图。每局第一次遇到某位画家，就能获得一块对应的拼图。本局得分还会转化为颜料，攒够后自动补上一块拼图。拼完即可查看完整画作和作品介绍。",
+    tipGallery2: "点下面的“去画廊看看”查看进度。平时也可以点主页面右下角的“画廊”。",
+    gotIt: "知道了",
+    tipEarly: "你刚拿到了萨金特作品的第一块拼图！画廊为每位画家收录了一幅代表作，每幅作品都分成了几块拼图。之后每局第一次遇到某位画家，就能再获得一块对应的拼图；拼完即可查看完整画作和作品介绍。画廊就在主界面右下角。",
+    tipEarly2: "现在就可以点闪光的“画廊”看看，也可以先接着玩。",
+    tipEarlyG: "这里就是画廊。每位画家的作品拼图都在这里，点一幅画可以看画家介绍和拼图进度。",
+    lockedQ: v => `对应数值为「${v}」的画家尚未解锁。你可以继续游戏，通过合成解锁，也可以现在直接查看介绍。`,
+    peekYes: "直接查看",
+    peekNo: "继续游戏",
+    someWork: v => `「${v}」的作品`,
+    unknown: "？",
+    pieceGot: "获得拼图块 ＋1",
+    pieceDone: "拼图集齐！",
+    appeared: n => `${n}出现了 · 拼图块 ＋1`,
+    pieceEvery: n => `每局中，${n}第一次出现时可获得一块拼图`,
+    over: "没有可以移动的方块了",
+    ended: "本局结算",
+    overTitle: "这一局结束了",
+    gameScore: "本局得分",
+    gotPaint: "获得颜料",
+    paintEnough: "颜料攒够了！",
+    addedOne: (h, t) => `又拼上一块：${h} / ${t}`,
+    toNext: "距离下一块",
+    nextFor: w => `正在拼：${w}`,
+    allHighDone: "所有作品都已拼完",
+    piecesThisGame: "本局获得的拼图块",
+    noPieces: "这一局没有新的拼图块",
+    sum: n => `共 ＋${n}`,
+    done: "拼完了！",
+    toGallery: "去画廊看看",
+    again: "再来一局",
+    galleryDone: (d, t) => `已完成 ${d} / ${t} 幅`,
+    paint: "颜料",
+    paintNote: "每局得分都会转化为颜料。攒够后，会按阶数从低到高，为下一幅未完成的作品自动补上一块拼图。",
+    creditsLink: "图片来源与授权 ›",
+    complete: "已完成",
+    secIntro: "画家介绍",
+    secWork: "作品拼图",
+    metChip: "已认识 ✓",
+    peekChip: "已提前查看",
+    lockedChip: "🔒 还没合成过",
+    metNote: "第一次在棋盘上遇到这位画家时解锁，以后随时可以回来看。",
     piecesChip: (h, t) => `${h} / ${t} 块`,
-    howGetT: "获取拼图", howGet: n => `每局首次出现${n}方块，即可获得 1 块拼图（合成或随机出现均有效）。`,
-    howDoneT: "解锁画作", howDone: k => `还差 ${k} 块。集齐拼图，即可解锁完整画作、作品介绍及博物馆链接。`,
+    howGetT: "获取拼图",
+    howGet: n => `每局中，${n}方块第一次出现时，即可获得1块拼图（合成或随机出现均可）。`,
+    howDoneT: "解锁画作",
+    howDone: k => `还差 ${k} 块。集齐拼图，即可解锁完整画作、作品介绍及博物馆链接。`,
     paintHelp: "颜料攒够时，也会按阶数从低到高自动补上一块。",
-    paintGetT: "获取拼图", paintGet: "高阶作品主要靠颜料：每局得分攒成颜料，够了自动拼一块。如果哪局真的合成出了这位画家，也会额外得一块。",
-    paintNow: "正在拼这一幅 · 距离下一块", paintQueue: w => `颜料按阶数从低到高一幅一幅拼，现在先拼${w}。`,
+    paintGetT: "获取拼图",
+    paintGet: "高阶作品的拼图可以靠颜料补齐：每局得分都会转化为颜料，攒够后自动补上一块拼图。如果在某局中合成出这位画家的方块，还能额外获得一块。",
+    paintNow: "正在拼这一幅 · 距离下一块",
+    paintQueue: w => `颜料会按阶数从低到高，依次补齐作品拼图。目前正在拼：${w}。`,
     paintTitle: "颜料",
-    viewLarge: "查看大图", museum: "去博物馆页面看高清大图和更多介绍 ↗", workDone: "✦ 作品完成 ✦", collect: "收入画廊",
-    allPieces: (t) => `${t} / ${t} 块全部拼齐`,
-    creditsIntro: "游戏里的作品图片都来自博物馆开放获取图库或维基共享资源，均为公有领域或允许自由使用的授权。点作品名可以打开博物馆页面。",
-    creditsUse: "本游戏与以上博物馆没有合作关系，也未获得其认可。",
+    viewLarge: "查看大图",
+    museum: "去博物馆页面看高清大图和更多介绍 ↗",
+    workDone: "✦ 作品完成 ✦",
+    collect: "收入画廊",
+    allPieces: t => `${t} / ${t} 块全部拼齐`,
+    creditsIntro: "游戏中的作品图片来自博物馆开放获取图库或维基共享资源，均属公有领域，或采用允许自由使用的许可。点击作品名，可查看作品的相关介绍页面。",
+    creditsUse: "本游戏与上述博物馆无关联，也未获其背书。",
     langBtn: "EN"
   },
   en: {
-    docTitle: "2048 · Old Masters", title: "2048 · Old Masters", sub: "Merge matching artists, all the way back to the Ice Age",
-    score: "SCORE", best: "BEST", newGame: "New Game", autoIntro: "Intros every game", gallery: "Gallery",
-    back: "‹ Back", backGallery: "‹ Gallery", credits: "Image credits", cont: "Continue", tapClose: "Tap anywhere to close",
-    newArtist: "New artist · ", peekTag: "Sneak peek · ", tier: (v, n) => `${v} · Rank ${n}`,
-    win: "🎉 You made 2048! Keep playing if you like.", final: "🏆 You've made it all the way back to the Ice Age!",
-    factLabel: "Fun fact", fact: "Fun fact: ", natureLink: "Nature paper ↗",
-    coachTap: "Tap to meet your first artist", coachSwipe: "Swipe in any direction to merge two matching artists",
-    tipMergeT: "How merging works", tipMerge: "Two matching artists merge into an artist born earlier. The higher you go, the closer you get to where painting began: from the 19th century all the way back to the Ice Age.",
-    tipGalleryT: "The Gallery", tipGallery: "Each artist has one masterpiece, split into puzzle pieces. The first time you meet an artist in a game, you get one of their pieces; your score also turns into paint, which fills in pieces when you have enough. Finish a puzzle to see the whole artwork and its story.",
-    tipGallery2: "Tap “Open gallery” below to see your progress. You can also open it any time from the Gallery button on the main screen.", gotIt: "Got it",
-    lockedQ: v => `The ${v} artist is still locked. Keep playing to unlock them, or skip the challenge and look now?`, peekYes: "Look now", peekNo: "Keep playing",
-    someWork: v => `the ${v} artwork`, unknown: "?",
-    pieceGot: "Puzzle piece +1", pieceDone: "Puzzle complete!", appeared: n => `${n} appeared · Puzzle piece +1`,
+    docTitle: "2048 · Art Through Time",
+    title: "2048 · Art Through Time",
+    sub: "Merge matching artist tiles to unlock masterpieces and their stories",
+    score: "SCORE",
+    best: "BEST",
+    newGame: "New Game",
+    autoIntro: "Intros every game",
+    gallery: "Gallery",
+    back: "‹ Back",
+    backGallery: "‹ Gallery",
+    credits: "Image credits",
+    cont: "Continue",
+    tapClose: "Tap anywhere to close",
+    newArtist: "New artist · ",
+    peekTag: "Sneak peek · ",
+    tier: (v, n) => `${v} · Rank ${n}`,
+    win: "🎉 You made 2048! Keep playing if you like.",
+    final: "🏆 You've made it all the way back to the Ice Age!",
+    factLabel: "Did You Know?",
+    fact: "Did You Know? ",
+    natureLink: "Nature paper ↗",
+    coachTap: "Tap to meet your first artist",
+    coachSwipe: "Swipe in any direction to merge two matching artists",
+    tipMergeT: "How merging works",
+    tipMerge: "Two matching artists merge into an artist born earlier. Keep merging to discover who comes next.",
+    tipGalleryT: "The Gallery",
+    tipGallery: "Each artist is represented by one painting, split into puzzle pieces. The first time you meet an artist in a game, you get one of their pieces; your score also turns into paint, which fills in pieces when you have enough. Finish a puzzle to see the whole artwork and its story.",
+    tipGallery2: "Tap “Open gallery” below to see your progress. You can also open it any time from the Gallery button on the main screen.",
+    gotIt: "Got it",
+    tipEarly: "You just got the first piece of Sargent's painting! Each artist is represented by one painting, split into puzzle pieces and kept in the Gallery at the bottom right. The first time you meet an artist in each game, you get another piece; finish a puzzle to see the whole artwork and its story.",
+    tipEarly2: "Tap the glowing Gallery button to take a look, or keep playing first.",
+    tipEarlyG: "This is the Gallery. Every artist's puzzle lives here: tap a painting to read about the artist and check your progress.",
+    lockedQ: v => `The ${v} artist is still locked. Keep playing to unlock them, or view their introduction now?`,
+    peekYes: "Look now",
+    peekNo: "Keep playing",
+    someWork: v => `the ${v} artwork`,
+    unknown: "?",
+    pieceGot: "Puzzle piece +1",
+    pieceDone: "Puzzle complete!",
+    appeared: n => `${n} appeared · Puzzle piece +1`,
     pieceEvery: n => `Get another piece the first time ${n} appears in a game`,
-    over: "No moves left", ended: "Game summary", overTitle: "Game over",
-    gameScore: "Score", gotPaint: "Paint earned", paintEnough: "Enough paint!", addedOne: (h, t) => `One more piece: ${h} / ${t}`,
-    toNext: "Next piece", nextFor: w => `Now painting: ${w}`, allHighDone: "Every high-rank artwork is complete",
-    piecesThisGame: "Pieces earned this game", noPieces: "No new pieces this game", sum: n => `+${n} total`, done: "Complete!",
-    toGallery: "Open gallery", again: "Play again",
-    galleryDone: (d, t) => `${d} / ${t} artworks complete`, paint: "Paint",
+    over: "No moves left",
+    ended: "Game summary",
+    overTitle: "Game over",
+    gameScore: "Score",
+    gotPaint: "Paint earned",
+    paintEnough: "Enough paint!",
+    addedOne: (h, t) => `One more piece: ${h} / ${t}`,
+    toNext: "Next piece",
+    nextFor: w => `Now painting: ${w}`,
+    allHighDone: "Every artwork is complete",
+    piecesThisGame: "Pieces earned this game",
+    noPieces: "No new pieces this game",
+    sum: n => `+${n} total`,
+    done: "Complete!",
+    toGallery: "Open gallery",
+    again: "Play again",
+    galleryDone: (d, t) => `${d} / ${t} artworks complete`,
+    paint: "Paint",
     paintNote: "Every point you score becomes paint. When you have enough, it fills in the next unfinished artwork, from the lowest rank up.",
-    creditsLink: "Image credits ›", complete: "Complete",
-    secIntro: "About the artist", secWork: "Artwork puzzle", metChip: "Met ✓", peekChip: "Peeked", lockedChip: "🔒 Not yet met",
-    unlockHint: v => `Make ${v} on the board to unlock.`, peekBtn: "Read it now",
-    peekNote: "You'll be asked to confirm first.", metNote: "Unlocked the first time you met this artist on the board. Come back any time.",
+    creditsLink: "Image credits ›",
+    complete: "Complete",
+    secIntro: "About the artist",
+    secWork: "Artwork puzzle",
+    metChip: "Met ✓",
+    peekChip: "Peeked",
+    lockedChip: "🔒 Not yet met",
+    metNote: "Unlocked the first time you met this artist on the board. Come back any time.",
     piecesChip: (h, t) => `${h} / ${t} pieces`,
-    howGetT: "Getting pieces", howGet: n => `Get 1 piece the first time a ${n} tile appears in each game (merged or spawned).`,
-    howDoneT: "Unlocking the artwork", howDone: k => `${k} piece${k > 1 ? "s" : ""} to go. Complete the puzzle to unlock the full artwork, its story and a museum link.`,
+    howGetT: "Getting pieces",
+    howGet: n => `Get 1 piece the first time a ${n} tile appears in each game (merged or spawned).`,
+    howDoneT: "Unlocking the artwork",
+    howDone: k => `${k} piece${k > 1 ? "s" : ""} to go. Complete the puzzle to unlock the full artwork, its story and a museum link.`,
     paintHelp: "When you have enough paint, it also fills in pieces, from the lowest rank up.",
-    paintGetT: "Getting pieces", paintGet: "High-rank artworks are filled in mostly with paint: your scores add up, and each time you have enough a piece is added. Actually making this artist in a game earns a bonus piece too.",
-    paintNow: "Now painting this one · next piece", paintQueue: w => `Paint fills artworks in order, from the lowest rank up. ${w} comes first.`,
+    paintGetT: "Getting pieces",
+    paintGet: "You can also use paint to complete high-rank artwork puzzles: your scores add up, and each time you have enough, a piece is added. Merging tiles to reach this artist in a game earns a bonus piece too.",
+    paintNow: "Now painting this one · next piece",
+    paintQueue: w => `Paint fills artworks in order, from the lowest rank up. ${cap(w)} comes first.`,
     paintTitle: "Paint",
-    viewLarge: "View large", museum: "See it in high resolution on the museum's site ↗", workDone: "✦ Artwork complete ✦", collect: "Add to gallery",
-    allPieces: (t) => `All ${t} pieces collected`,
-    creditsIntro: "All artwork images come from museum open-access collections or Wikimedia Commons, and are in the public domain or freely licensed. Tap a title to open the museum page.",
+    viewLarge: "View large",
+    museum: "See it in high resolution on the museum's site ↗",
+    workDone: "✦ Artwork complete ✦",
+    collect: "Add to gallery",
+    allPieces: t => `All ${t} pieces collected`,
+    creditsIntro: "All artwork images come from museum open-access collections or Wikimedia Commons, and are in the public domain or freely licensed. Tap a title to learn more about the artwork.",
     creditsUse: "This game is not affiliated with or endorsed by any of these museums.",
     langBtn: "中文"
   }
@@ -310,20 +411,26 @@ function showNext(){
 }
 function afterModals(){
   if (tut === "swipe"){
-    if (pendingTutPiece){ const p = pendingTutPiece; pendingTutPiece = null; toast(p, () => showCoach()); }
+    if (pendingTutPiece){
+      const p = pendingTutPiece; pendingTutPiece = null;
+      toast(p, () => {
+        if (!tips.galleryEarly){ tips.galleryEarly = true; store("oma_tips", tips); queue.push({k: "tip", id: "galleryEarly"}); showNext(); }
+        else showCoach();
+      });
+    }
     else showCoach();
   }
   if (!ended && grid && !canMove()) gameOver();
 }
-function factHTML(lv){
-  const a = A[lv], t = T();
-  let txt = esc(en() ? a.factEn : a.fact);
-  if (a.factLink){  // 把文中的“《自然》论文 / Nature paper”变成链接
-    const k = en() ? "Nature paper" : "《自然》论文";
-    txt = txt.replace(k, `<a href="${a.factLink}" target="_blank" rel="noopener">${k} ↗</a>`);
-  }
-  return `<p class="fact"><b>${t.fact}</b>${txt}</p>`;
+// 多段文字：空行分段；[文字](网址) 变成链接
+function paras(text){
+  return String(text).split(/\n\n+/).map(p => "<p>" + esc(p).replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g,
+    (m, k, u) => `<a href="${u}" target="_blank" rel="noopener">${k} ↗</a>`) + "</p>").join("");
 }
+function factBox(text){
+  return `<div class="fact"><b>${T().fact}</b>${paras(text)}</div>`;
+}
+function factHTML(lv){ const a = A[lv]; return factBox(en() ? a.factEn : a.fact); }
 function renderCard(){
   const it = cur, t = T();
   if (!it) return;
@@ -354,7 +461,7 @@ function renderCard(){
     <div class="card-body">
       <div class="meta">${esc(en() ? a.lifeEn : a.life)}　${esc(en() ? a.tagEn : a.tag)}</div>
       ${win ? `<p class="win">${win}</p>` : ""}
-      <p>${esc(en() ? a.introEn : a.intro)}</p>
+      ${paras(en() ? a.introEn : a.intro)}
       ${factHTML(lv)}
       ${pieceBox}
       <button class="primary" data-act="next">${t.cont}</button>
@@ -362,7 +469,9 @@ function renderCard(){
 }
 function renderTip(id){
   const t = T();
-  const body = id === "merge"
+  if (id === "galleryEarly" && !openPages.includes("gallery")) document.getElementById("galleryBtn").classList.add("pulse");
+  const body = id === "galleryEarly" ? (openPages.includes("gallery") ? `<p>${t.tipEarlyG}</p>` : `<p>${t.tipEarly}</p><p class="muted small">${t.tipEarly2}</p>`)
+    : id === "merge"
     ? `<div class="tip-demo"><span class="tile-mini" style="background:${A[0].bg};color:${A[0].fg}">${esc(nm(0))}</span> ＋ <span class="tile-mini" style="background:${A[0].bg};color:${A[0].fg}">${esc(nm(0))}</span> → <span class="tile-mini" style="background:${A[1].bg};color:${A[1].fg}">${esc(nm(1))}</span></div><p>${t.tipMerge}</p>`
     : `<p>${t.tipGallery}</p><p class="muted small">${t.tipGallery2}</p>`;
   card.innerHTML = `<div class="card-body tip">
@@ -374,8 +483,8 @@ function workBlock(lv){
   const a = A[lv], t = T();
   return `<div class="work-title">${esc(workName(lv))}</div>
     <div class="meta">${esc(en() ? a.workMetaEn : a.workMeta)}</div>
-    <p>${esc(en() ? a.workDescEn : a.workDesc)}</p>
-    <p class="fact"><b>${t.fact}</b>${esc(en() ? a.workFactEn : a.workFact)}</p>`;
+    ${paras(en() ? a.workDescEn : a.workDesc)}
+    ${factBox(en() ? a.workFactEn : a.workFact)}`;
 }
 function renderComplete(lv){
   const a = A[lv], t = T();
@@ -544,14 +653,11 @@ function renderArtist(){
   const a = A[lv], t = T(), isMet = met.has(lv), isPeek = !isMet && peeked.has(lv), shown = isMet || isPeek;
   const h = pieces[lv].size, tot = total(lv), d = isDone(lv);
   document.getElementById("artistTier").textContent = t.tier(fmt(val(lv)), lv + 1);
-  const intro = shown ? `
-      <p>${esc(en() ? a.introEn : a.intro)}</p>
+  // 画家卡片只对合成过或提前查看过的画家打开（没解锁的在画廊里先弹确认对话框）
+  const intro = `
+      ${paras(en() ? a.introEn : a.intro)}
       <details class="fold"><summary>${t.factLabel}</summary>${factHTML(lv)}</details>
-      ${isMet ? `<div class="muted small">${t.metNote}</div>` : ""}` : `
-      <div class="lines"><i style="width:100%"></i><i style="width:92%"></i><i style="width:97%"></i><i style="width:60%"></i></div>
-      <p class="small">${t.unlockHint(fmt(val(lv)))}</p>
-      <button class="ghost" id="peekBtn">${t.peekBtn}</button>
-      <div class="muted small">${t.peekNote}</div>`;
+      ${isMet ? `<div class="muted small">${t.metNote}</div>` : ""}`;
   let work;
   if (d){
     work = `<div class="gold-frame" data-view="${lv}">${puzzleHTML(lv, {full: true, vh: 50})}</div>
@@ -564,7 +670,7 @@ function renderArtist(){
       <div class="bar"><i style="width:${Math.min(100, paint / PIECE_COST * 100)}%"></i></div>`
       : `<p class="muted small">${t.paintQueue(esc(workLabel(tgt)))}</p>`;
     const how = lv < HIGH
-      ? `<p class="small"><b>${t.howGetT}</b><br>${t.howGet(nm(lv))}${t.paintHelp}</p>
+      ? `<p class="small"><b>${t.howGetT}</b><br>${t.howGet(nm(lv))}${en() ? " " : ""}${t.paintHelp}</p>
          <p class="small"><b>${t.howDoneT}</b><br>${t.howDone(tot - h)}</p>${prog}`
       : `<p class="small"><b>${t.paintGetT}</b><br>${t.paintGet}</p><p class="small"><b>${t.howDoneT}</b><br>${t.howDone(tot - h)}</p>${prog}`;
     work = `<div class="work-pz">${puzzleHTML(lv, {q: true, vh: 42})}</div>
@@ -582,7 +688,6 @@ function renderArtist(){
       <div class="row-between"><b>② ${t.secWork}</b><span class="chip gold">${d ? t.complete : t.piecesChip(h, tot)}</span></div>
       ${work}
     </section>`;
-  const pb = document.getElementById("peekBtn"); if (pb) pb.onclick = () => askPeek(lv);
 }
 document.getElementById("artistBody").addEventListener("click", e => {
   const v = e.target.closest("[data-view]"); if (v) openViewer(+v.dataset.view);
@@ -591,8 +696,9 @@ document.getElementById("artistBody").addEventListener("click", e => {
 function renderCredits(){
   const t = T();
   document.getElementById("creditsBody").innerHTML = `<p class="small">${t.creditsIntro}</p>` +
-    A.map((a, lv) => known(lv) ? `<div class="credit"><a href="${a.link}" target="_blank" rel="noopener">${esc(fullName(lv))} · ${esc(workName(lv))}</a>` :
-      `<div class="credit"><span class="muted">${t.unknown} · ${esc(workLabel(lv))}</span>
+    A.map((a, lv) => `<div class="credit">${known(lv)
+        ? `<a href="${a.link}" target="_blank" rel="noopener">${esc(fullName(lv))} · ${esc(workName(lv))}</a>`
+        : `<span class="muted">${t.unknown} · ${esc(workLabel(lv))}</span>`}
       <div class="muted small">${esc(a.credit)}</div></div>`).join("") +
     `<p class="muted small">${t.creditsUse}</p>`;
 }
@@ -627,7 +733,12 @@ const viewer = document.getElementById("viewer");
 function openViewer(lv){ document.getElementById("viewerImg").src = A[lv].img; viewer.classList.add("show"); }
 viewer.addEventListener("click", () => viewer.classList.remove("show"));
 
-document.getElementById("galleryBtn").addEventListener("click", () => { if (!modalOpen) openGallery(); else logErr("gallery tap ignored: modal open"); });
+document.getElementById("galleryBtn").addEventListener("click", () => {
+  if (modalOpen){ logErr("gallery tap ignored: modal open"); return; }
+  document.getElementById("galleryBtn").classList.remove("pulse");
+  openGallery();
+  if (!tips.galleryEarly){ tips.galleryEarly = true; store("oma_tips", tips); queue.push({k: "tip", id: "galleryEarly"}); showNext(); }
+});
 // 结算页按钮：用事件委托，就算页面内容渲染出错，按钮也能用
 document.getElementById("summary").addEventListener("click", e => {
   if (e.target.closest("#sumGallery")){ e.target.closest("#sumGallery").classList.remove("pulse"); openGallery(); }
@@ -696,12 +807,21 @@ function nudgeCoach(){ coachEl.classList.remove("nudge"); void coachEl.offsetWid
 function finishTutorial(){ tut = "done"; store("oma_tut", tut); hideCoach(); }
 
 // ---------- 语言 ----------
+// 标题太长时（英文标题、窄屏）自动缩小字号，保证一行放得下
+function fitTitle(){
+  const h = document.querySelector("h1"); if (!h) return;
+  h.style.fontSize = "";
+  let size = parseFloat(getComputedStyle(h).fontSize);
+  while (h.scrollWidth > h.clientWidth && size > 16){ size -= 1; h.style.fontSize = size + "px"; }
+}
+addEventListener("resize", fitTitle);
 function applyLang(){
   const t = T();
   document.documentElement.lang = en() ? "en" : "zh-CN";
   document.title = t.docTitle;
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t[el.dataset.i18n]; });
   document.getElementById("langBtn").textContent = t.langBtn;
+  fitTitle();
   els.forEach(el => { el.innerHTML = tileHTML(+el.dataset.lv); });
   if (modalOpen) renderCard();
   if (openPages.includes("gallery")) renderGallery();
